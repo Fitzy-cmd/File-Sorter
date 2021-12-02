@@ -10,12 +10,12 @@ class Sorter(QObject):
         self.filters = {}
         self.path = pathStr
         self.loadFileFilters()
-        self.checkFolderPaths()
         for filename in os.listdir(self.path):
             currentFilePath = os.path.join(self.path, filename)
             if os.path.isfile(currentFilePath):
                 for fileExt in self.filters:
                     if fileExt in filename:
+                        self.checkFolderPath(self.filters[fileExt])
                         newFilePath = os.path.join(self.path, self.filters[fileExt])
                         shutil.move(currentFilePath, newFilePath)
                 self.progress.emit()
@@ -30,15 +30,12 @@ class Sorter(QObject):
                 if fileExt not in self.filters:
                     self.filters[fileExt] = folder
     
-    def checkFolderPaths(self):
-        print(self.filters)
-        for fileExt in self.filters:
-            folderpath = os.path.join(self.path, self.filters[fileExt])
-            if not os.path.exists(folderpath):
-                os.makedirs(folderpath)
+    def checkFolderPath(self, folder):
+        folderpath = os.path.join(self.path, folder)
+        if not os.path.exists(folderpath):
+            os.makedirs(folderpath)
             
-        
-
+    
 class sizeToString():
     def __init__(self,size):
         self.size = size
@@ -85,4 +82,44 @@ class sizeToString():
         return f"{round(self.size / 1000000000000)}TB"
     
     def peta(self):
+        return f"{round(self.size / 1000000000000000)}PB"
+
+class timeToString():
+    def __init__(self, time):
+        self.time = time
+        self.determineTime()
+        
+    def determineTime(self):
+        hours, minutes, seconds = self.time.split(":")
+        seconds, milliseconds = seconds.split(".")
+        self.timeString = ""
+        if int(hours) > 0:
+            self.timeString += f"{hours} hours, "
+        if  int(minutes) > 0:
+            self.timeString += f"{minutes} minutes, "
+        if int(seconds) > 0:
+            self.timeString += f"{seconds} seconds and "
+        self.timeString += f"{float(float(milliseconds) / 1000)} milliseconds"
+        return self.timeString
+        
+        
+
+        #self.sizeString = self.sizeTypes[size]
+    
+    def milli(self):
+        return f"{self.size} milliseconds"
+    
+    def sec(self):
+        return f"{round(self.size / 1000)} seconds"
+    
+    def min(self):
+        return f"{round(self.size / 1000000)} minutes"
+    
+    def hour(self):
+        return f"{round(self.size / 1000000000)} hours"
+    
+    def day(self):
+        return f"{round(self.size / 1000000000000)} days"
+    
+    def week(self):
         return f"{round(self.size / 1000000000000000)}PB"

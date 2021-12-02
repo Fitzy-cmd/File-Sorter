@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox
 import requests, re, webbrowser, os
 from pathlib import Path
 import functions
+from datetime import datetime
 __version__ = "0.0.3"
 __beta__ = True
 
@@ -190,7 +191,7 @@ class GUI(object):
         self.fcLabel.setObjectName("fcLabel")
 
         self.ttLabel = QtWidgets.QLabel(self.widget)
-        self.ttLabel.setGeometry(QtCore.QRect(110, 290, 101, 31))
+        self.ttLabel.setGeometry(QtCore.QRect(110, 290, 350, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
         font.setPointSize(13)
@@ -221,7 +222,7 @@ class GUI(object):
 
         self.dir, self.fileCount, self.dirSize, self.estimatedTime, \
             self.filesCompleted, self.timeTaken, self.timeRemaining = "---", "---", "---", "---", "---", "---", "---"
-
+        self.updateStatus = ""
         self.retranslateUi(self.widget)
         self.checkForUpdate()
         QtCore.QMetaObject.connectSlotsByName(self.widget)
@@ -230,7 +231,7 @@ class GUI(object):
         _translate = QtCore.QCoreApplication.translate
         Widget.setWindowTitle(_translate("Widget", "Widget"))
         self.title.setText(_translate("Widget", "File AutoSorter"))
-        self.updateButton.setText(_translate("Widget", "PushButton"))
+        self.updateButton.setText(_translate("Widget", f"{self.updateStatus}"))
         self.selectDirectoryButton.setText(_translate("Widget", "Select Directory"))
         self.settingsButton.setText(_translate("Widget", "Settings"))
         self.cdTitle.setText(_translate("Widget", "Current Directory:"))
@@ -252,9 +253,9 @@ class GUI(object):
         self.cdTitle_2.setText(_translate("Widget", "A project by Silveridge"))
     
     def checkForUpdate(self):
-        _translate = QtCore.QCoreApplication.translate
         self.updateButton.setDisabled(True)
-        self.updateButton.setText(_translate("Widget", "Checking for update..."))
+        self.updateStatus = "Checking for updates..."
+        self.retranslateUi(self.widget)
 
         try:
             r = requests.get("https://raw.githubusercontent.com/Silveridge/File-Sorter/main/gui.py")
@@ -263,14 +264,15 @@ class GUI(object):
             localVersion = __version__
 
             if __beta__:
-                self.updateButton.setText(_translate("Widget", "Update Beta Version"))
+                self.updateStatus = "Update Beta Version"
                 self.updateButton.setDisabled(False)
             else:
                 if remoteVersion != localVersion:
                     self.updateButton.setDisabled(False)
-                    self.updateButton.setText(_translate("Widget", "Update Available!"))
+                    self.updateStatus = "Update Available!"
                 else:
-                    self.updateButton.setText(_translate("Widget", "No update available"))
+                    self.updateStatus = "No update available"
+            self.retranslateUi(self.widget)
         except Exception as e:
             print("Update search failed, aborting.")
     
@@ -290,9 +292,15 @@ class GUI(object):
         msgBox.exec_()
     
     def selectDirectory(self):
+        print("selecting directory")
         self.dirString = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
         if self.dir != "":
             self.setDirStats()
+            print(self.fileCount)
+            if self.fileCount <= 0:
+                self.dir = "---"
+                self.cdLabel.show()
+                self.cdButton.hide()
             self.retranslateUi(self.widget)
     
     def setDirStats(self):
@@ -313,10 +321,17 @@ class GUI(object):
         
         
         self.dirSize = functions.sizeToString(self.dirSize).sizeString
-
-        self.startButton.setEnabled(True)
+        if self.fileCount <= 0:
+            self.showPopup("info","No files in directory","You do not have any files in this directory.")
+        else:
+            self.startButton.setEnabled(True)
     
     def beginSort(self):
+        self.filesCompleted = 0
+        self.startTime = datetime.now()
+        self.startButton.setEnabled(False)
+        self.settingsButton.setEnabled(False)
+        self.selectDirectoryButton.setEnabled(False)
         self.thread = QThread()
         self.worker = functions.Sorter()
         self.progressSegment = int(100/int(self.fileCount))
@@ -331,7 +346,16 @@ class GUI(object):
         self.thread.start()
     
     def fin(self):
+        self.endTime = datetime.now()
+        self.timeTaken = self.endTime - self.startTime
+        self.timeTaken = functions.timeToString(str(self.timeTaken)).timeString
         self.sortProgress.setValue(100)
+        self.startButton.setEnabled(True)
+        self.settingsButton.setEnabled(True)
+        self.selectDirectoryButton.setEnabled(True)
+        self.retranslateUi(self.widget)
     
     def progress(self):
         self.sortProgress.setValue(self.sortProgress.value() + self.progressSegment)
+        self.filesCompleted += 1
+        self.retranslateUi(self.widget)
