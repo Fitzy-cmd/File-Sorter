@@ -1,18 +1,23 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-import requests
+from PyQt5.QtWidgets import QFileDialog
+import requests, re, webbrowser, os
+from pathlib import Path
+import functions
 __version__ = "0.0.1"
 __beta__ = True
 
 
-class Ui_Widget(object):
+class GUI(object):
     def setupUi(self, Widget):
-        Widget.setObjectName("Widget")
-        Widget.resize(434, 411)
+        self.widget = Widget
+        self.widget.setObjectName("Widget")
+        self.widget.resize(434, 411)
         font = QtGui.QFont()
         font.setFamily("Corbel")
         font.setPointSize(10)
-        Widget.setFont(font)
-        self.title = QtWidgets.QLabel(Widget)
+        self.widget.setFont(font)
+        
+        self.title = QtWidgets.QLabel(self.widget)
         self.title.setGeometry(QtCore.QRect(10, 0, 251, 41))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -21,28 +26,35 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.title.setFont(font)
         self.title.setObjectName("title")
-        self.updateButton = QtWidgets.QPushButton(Widget)
+        
+        self.updateButton = QtWidgets.QPushButton(self.widget)
         self.updateButton.setGeometry(QtCore.QRect(290, 10, 141, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
         font.setPointSize(10)
         self.updateButton.setFont(font)
         self.updateButton.setObjectName("updateButton")
-        self.selectDirectoryButton = QtWidgets.QPushButton(Widget)
+        self.updateButton.clicked.connect(self.update)
+
+        self.selectDirectoryButton = QtWidgets.QPushButton(self.widget)
         self.selectDirectoryButton.setGeometry(QtCore.QRect(329, 60, 101, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
         font.setPointSize(10)
         self.selectDirectoryButton.setFont(font)
         self.selectDirectoryButton.setObjectName("selectDirectoryButton")
-        self.settingsButton = QtWidgets.QPushButton(Widget)
+        self.selectDirectoryButton.clicked.connect(self.selectDirectory)
+
+        self.settingsButton = QtWidgets.QPushButton(self.widget)
         self.settingsButton.setGeometry(QtCore.QRect(350, 90, 80, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
         font.setPointSize(10)
         self.settingsButton.setFont(font)
         self.settingsButton.setObjectName("settingsButton")
-        self.cdTitle = QtWidgets.QLabel(Widget)
+        self.settingsButton.setEnabled(False)
+
+        self.cdTitle = QtWidgets.QLabel(self.widget)
         self.cdTitle.setGeometry(QtCore.QRect(10, 120, 111, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -51,7 +63,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.cdTitle.setFont(font)
         self.cdTitle.setObjectName("cdTitle")
-        self.nofTitle = QtWidgets.QLabel(Widget)
+        
+        self.nofTitle = QtWidgets.QLabel(self.widget)
         self.nofTitle.setGeometry(QtCore.QRect(10, 140, 101, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -60,7 +73,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.nofTitle.setFont(font)
         self.nofTitle.setObjectName("nofTitle")
-        self.etTitle = QtWidgets.QLabel(Widget)
+
+        self.etTitle = QtWidgets.QLabel(self.widget)
         self.etTitle.setGeometry(QtCore.QRect(10, 180, 101, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -69,7 +83,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.etTitle.setFont(font)
         self.etTitle.setObjectName("etTitle")
-        self.tdsTitle = QtWidgets.QLabel(Widget)
+
+        self.tdsTitle = QtWidgets.QLabel(self.widget)
         self.tdsTitle.setGeometry(QtCore.QRect(10, 160, 121, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -78,7 +93,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.tdsTitle.setFont(font)
         self.tdsTitle.setObjectName("tdsTitle")
-        self.sortProgress = QtWidgets.QProgressBar(Widget)
+
+        self.sortProgress = QtWidgets.QProgressBar(self.widget)
         self.sortProgress.setGeometry(QtCore.QRect(100, 210, 321, 31))
         font = QtGui.QFont()
         font.setFamily("Fixedsys")
@@ -86,14 +102,17 @@ class Ui_Widget(object):
         self.sortProgress.setFont(font)
         self.sortProgress.setProperty("value", 0)
         self.sortProgress.setObjectName("sortProgress")
-        self.startButton = QtWidgets.QPushButton(Widget)
+
+        self.startButton = QtWidgets.QPushButton(self.widget)
         self.startButton.setGeometry(QtCore.QRect(10, 210, 80, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
         font.setPointSize(10)
         self.startButton.setFont(font)
         self.startButton.setObjectName("startButton")
-        self.fcTitle = QtWidgets.QLabel(Widget)
+        self.startButton.setEnabled(False)
+
+        self.fcTitle = QtWidgets.QLabel(self.widget)
         self.fcTitle.setGeometry(QtCore.QRect(10, 250, 131, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -102,7 +121,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.fcTitle.setFont(font)
         self.fcTitle.setObjectName("fcTitle")
-        self.ttTitle = QtWidgets.QLabel(Widget)
+
+        self.ttTitle = QtWidgets.QLabel(self.widget)
         self.ttTitle.setGeometry(QtCore.QRect(10, 290, 101, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -111,7 +131,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.ttTitle.setFont(font)
         self.ttTitle.setObjectName("ttTitle")
-        self.trTitle = QtWidgets.QLabel(Widget)
+
+        self.trTitle = QtWidgets.QLabel(self.widget)
         self.trTitle.setGeometry(QtCore.QRect(10, 310, 131, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -120,7 +141,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.trTitle.setFont(font)
         self.trTitle.setObjectName("trTitle")
-        self.cdLabel = QtWidgets.QLabel(Widget)
+
+        self.cdLabel = QtWidgets.QLabel(self.widget)
         self.cdLabel.setGeometry(QtCore.QRect(120, 120, 311, 16))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -129,16 +151,20 @@ class Ui_Widget(object):
         font.setWeight(50)
         self.cdLabel.setFont(font)
         self.cdLabel.setObjectName("cdLabel")
-        self.nofLabel = QtWidgets.QLabel(Widget)
+
+        self.nofLabel = QtWidgets.QLabel(self.widget)
         self.nofLabel.setGeometry(QtCore.QRect(110, 140, 71, 16))
         self.nofLabel.setObjectName("nofLabel")
-        self.tdsLabel = QtWidgets.QLabel(Widget)
+
+        self.tdsLabel = QtWidgets.QLabel(self.widget)
         self.tdsLabel.setGeometry(QtCore.QRect(130, 160, 71, 16))
         self.tdsLabel.setObjectName("tdsLabel")
-        self.etLabel = QtWidgets.QLabel(Widget)
+
+        self.etLabel = QtWidgets.QLabel(self.widget)
         self.etLabel.setGeometry(QtCore.QRect(110, 180, 171, 16))
         self.etLabel.setObjectName("etLabel")
-        self.fcLabel = QtWidgets.QLabel(Widget)
+
+        self.fcLabel = QtWidgets.QLabel(self.widget)
         self.fcLabel.setGeometry(QtCore.QRect(140, 250, 131, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -147,7 +173,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.fcLabel.setFont(font)
         self.fcLabel.setObjectName("fcLabel")
-        self.ttLabel = QtWidgets.QLabel(Widget)
+
+        self.ttLabel = QtWidgets.QLabel(self.widget)
         self.ttLabel.setGeometry(QtCore.QRect(110, 290, 101, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -156,7 +183,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.ttLabel.setFont(font)
         self.ttLabel.setObjectName("ttLabel")
-        self.trLabel = QtWidgets.QLabel(Widget)
+
+        self.trLabel = QtWidgets.QLabel(self.widget)
         self.trLabel.setGeometry(QtCore.QRect(140, 310, 101, 31))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -165,7 +193,8 @@ class Ui_Widget(object):
         font.setWeight(75)
         self.trLabel.setFont(font)
         self.trLabel.setObjectName("trLabel")
-        self.cdTitle_2 = QtWidgets.QLabel(Widget)
+
+        self.cdTitle_2 = QtWidgets.QLabel(self.widget)
         self.cdTitle_2.setGeometry(QtCore.QRect(10, 40, 131, 21))
         font = QtGui.QFont()
         font.setFamily("Corbel")
@@ -175,8 +204,12 @@ class Ui_Widget(object):
         self.cdTitle_2.setFont(font)
         self.cdTitle_2.setObjectName("cdTitle_2")
 
-        self.retranslateUi(Widget)
-        QtCore.QMetaObject.connectSlotsByName(Widget)
+        self.dir, self.fileCount, self.dirSize, self.estimatedTime, \
+            self.filesCompleted, self.timeTaken, self.timeRemaining = "---", "---", "---", "---", "---", "---", "---"
+
+        self.retranslateUi(self.widget)
+        self.checkForUpdate()
+        QtCore.QMetaObject.connectSlotsByName(self.widget)
 
     def retranslateUi(self, Widget):
         _translate = QtCore.QCoreApplication.translate
@@ -193,13 +226,13 @@ class Ui_Widget(object):
         self.fcTitle.setText(_translate("Widget", "Files Completed:"))
         self.ttTitle.setText(_translate("Widget", "Time Taken:"))
         self.trTitle.setText(_translate("Widget", "Time Remaining:"))
-        self.cdLabel.setText(_translate("Widget", "---"))
-        self.nofLabel.setText(_translate("Widget", "---"))
-        self.tdsLabel.setText(_translate("Widget", "---"))
-        self.etLabel.setText(_translate("Widget", "---"))
-        self.fcLabel.setText(_translate("Widget", "---"))
-        self.ttLabel.setText(_translate("Widget", "---"))
-        self.trLabel.setText(_translate("Widget", "---"))
+        self.cdLabel.setText(_translate("Widget", f"{self.dir}"))
+        self.nofLabel.setText(_translate("Widget", f"{self.fileCount}"))
+        self.tdsLabel.setText(_translate("Widget", f"{self.dirSize}"))
+        self.etLabel.setText(_translate("Widget", f"{self.estimatedTime}"))
+        self.fcLabel.setText(_translate("Widget", f"{self.filesCompleted}"))
+        self.ttLabel.setText(_translate("Widget", f"{self.timeTaken}"))
+        self.trLabel.setText(_translate("Widget", f"{self.timeRemaining}"))
         self.cdTitle_2.setText(_translate("Widget", "A project by Silveridge"))
     
     def checkForUpdate(self):
@@ -208,7 +241,7 @@ class Ui_Widget(object):
         self.updateButton.setText(_translate("Widget", "Checking for update..."))
 
         try:
-            r = requests.get("https://raw.githubusercontent.com/Slaymish/EchoStatsFinder/main/gui.py")
+            r = requests.get("https://raw.githubusercontent.com/Silveridge/File-Sorter/main/gui.py")
 
             remoteVersion = str(re.findall('__version__ = "(.*)"', r.text)[0])
             localVersion = __version__
@@ -224,12 +257,29 @@ class Ui_Widget(object):
                     self.updateButton.setText(_translate("Widget", "No update available"))
         except Exception as e:
             print("Update search failed, aborting.")
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Widget = QtWidgets.QWidget()
-    ui = Ui_Widget()
-    ui.setupUi(Widget)
-    Widget.show()
-    sys.exit(app.exec_())
+    
+    def update(self):
+        webbrowser.open("https://github.com/Silveridge/File-Sorter/releases")
+    
+    def selectDirectory(self):
+        self.dir = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
+        if self.dir != "":
+            self.setDirStats()
+            self.updateDirInfo()
+            self.retranslateUi(self.widget)
+    
+    def setDirStats(self):
+        # CD, # of Files, Dir Size, est Time
+        self.dir = Path(self.dir)
+        self.fileCount = 0 # Total Files
+        self.dirSize = 0 # Bytes
+        for path in Path(self.dir).iterdir():
+            if path.is_file():
+                self.fileCount += 1
+                self.dirSize += path.stat().st_size
+        
+        
+        functions.sizeToString(self.dirSize)
+    
+    def updateDirInfo(self):
+        return
