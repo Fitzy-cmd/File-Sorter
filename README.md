@@ -3,6 +3,7 @@ A small, localised project designed to help users automatically sort their direc
 
 ## Future Implementations
 - [ ] Functioning Settings Menu
+- [ ] Working Time Estimation
 
 ## Installation
 Go to the releases page [here](https://www.github.com/Silveridge/File-Sorter/releases) and follow the instructions for download and installation.
