@@ -1,0 +1,4 @@
+.pdf|PDFs
+.txt|Text Files
+.TXT|Text Files
+.JPG|Media\Pictures

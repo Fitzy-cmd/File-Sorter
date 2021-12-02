@@ -1,9 +1,10 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import QThread
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 import requests, re, webbrowser, os
 from pathlib import Path
 import functions
-__version__ = "0.0.1"
+__version__ = "0.0.3"
 __beta__ = True
 
 
@@ -110,6 +111,7 @@ class GUI(object):
         font.setPointSize(10)
         self.startButton.setFont(font)
         self.startButton.setObjectName("startButton")
+        self.startButton.clicked.connect(self.beginSort)
         self.startButton.setEnabled(False)
 
         self.fcTitle = QtWidgets.QLabel(self.widget)
@@ -143,7 +145,7 @@ class GUI(object):
         self.trTitle.setObjectName("trTitle")
 
         self.cdLabel = QtWidgets.QLabel(self.widget)
-        self.cdLabel.setGeometry(QtCore.QRect(120, 120, 311, 16))
+        self.cdLabel.setGeometry(QtCore.QRect(120, 120, 311, 20))
         font = QtGui.QFont()
         font.setFamily("Corbel")
         font.setPointSize(10)
@@ -152,16 +154,29 @@ class GUI(object):
         self.cdLabel.setFont(font)
         self.cdLabel.setObjectName("cdLabel")
 
+        self.cdButton = QtWidgets.QPushButton(self.widget)
+        self.cdButton.setGeometry(QtCore.QRect(120, 120, 311, 20))
+        font = QtGui.QFont()
+        font.setFamily("Corbel")
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setWeight(50)
+        self.cdButton.setFont(font)
+        self.cdButton.setObjectName("cdButton")
+        self.cdButton.clicked.connect(lambda: self.showPopup("info", "Full Directory Path", self.dirString))
+        self.cdButton.hide()
+        
+
         self.nofLabel = QtWidgets.QLabel(self.widget)
-        self.nofLabel.setGeometry(QtCore.QRect(110, 140, 71, 16))
+        self.nofLabel.setGeometry(QtCore.QRect(110, 140, 71, 20))
         self.nofLabel.setObjectName("nofLabel")
 
         self.tdsLabel = QtWidgets.QLabel(self.widget)
-        self.tdsLabel.setGeometry(QtCore.QRect(130, 160, 71, 16))
+        self.tdsLabel.setGeometry(QtCore.QRect(130, 160, 71, 20))
         self.tdsLabel.setObjectName("tdsLabel")
 
         self.etLabel = QtWidgets.QLabel(self.widget)
-        self.etLabel.setGeometry(QtCore.QRect(110, 180, 171, 16))
+        self.etLabel.setGeometry(QtCore.QRect(110, 180, 171, 20))
         self.etLabel.setObjectName("etLabel")
 
         self.fcLabel = QtWidgets.QLabel(self.widget)
@@ -227,6 +242,7 @@ class GUI(object):
         self.ttTitle.setText(_translate("Widget", "Time Taken:"))
         self.trTitle.setText(_translate("Widget", "Time Remaining:"))
         self.cdLabel.setText(_translate("Widget", f"{self.dir}"))
+        self.cdButton.setText(_translate("Widget", f"{self.dir}"))
         self.nofLabel.setText(_translate("Widget", f"{self.fileCount}"))
         self.tdsLabel.setText(_translate("Widget", f"{self.dirSize}"))
         self.etLabel.setText(_translate("Widget", f"{self.estimatedTime}"))
@@ -261,16 +277,33 @@ class GUI(object):
     def update(self):
         webbrowser.open("https://github.com/Silveridge/File-Sorter/releases")
     
+    def showPopup(self, type, title, text):
+        msgBox = QMessageBox()
+        if type == "info":
+            msgBox.setIcon(QMessageBox.Information)
+            msgBox.setStandardButtons(QMessageBox.Ok)
+        elif type == "warn":
+            msgBox.setIcon(QMessageBox.Warning)
+            msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msgBox.setText(text)
+        msgBox.setWindowTitle(title)
+        msgBox.exec_()
+    
     def selectDirectory(self):
-        self.dir = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
+        self.dirString = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
         if self.dir != "":
             self.setDirStats()
-            self.updateDirInfo()
             self.retranslateUi(self.widget)
     
     def setDirStats(self):
         # CD, # of Files, Dir Size, est Time
-        self.dir = Path(self.dir)
+        self.dir = Path(self.dirString)
+        if len(list(self.dirString)) >= 50:
+            self.cdLabel.hide()
+            self.cdButton.show()
+        else:
+            self.cdLabel.show()
+            self.cdButton.hide()
         self.fileCount = 0 # Total Files
         self.dirSize = 0 # Bytes
         for path in Path(self.dir).iterdir():
@@ -279,7 +312,26 @@ class GUI(object):
                 self.dirSize += path.stat().st_size
         
         
-        functions.sizeToString(self.dirSize)
+        self.dirSize = functions.sizeToString(self.dirSize).sizeString
+
+        self.startButton.setEnabled(True)
     
-    def updateDirInfo(self):
-        return
+    def beginSort(self):
+        self.thread = QThread()
+        self.worker = functions.Sorter()
+        self.progressSegment = int(100/int(self.fileCount))
+        
+
+        ## Begin Thread
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(lambda: self.worker.start(self.dirString))
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.progress.connect(self.progress)
+        self.thread.finished.connect(self.fin)
+        self.thread.start()
+    
+    def fin(self):
+        self.sortProgress.setValue(100)
+    
+    def progress(self):
+        self.sortProgress.setValue(self.sortProgress.value() + self.progressSegment)
