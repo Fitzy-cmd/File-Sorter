@@ -1,11 +1,12 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
-import requests, re, webbrowser, os
+import requests, re, webbrowser, os, sys
 from pathlib import Path
 import functions
 from datetime import datetime
-__version__ = "0.0.3"
+from settings import *
+__version__ = "0.0.8"
 __beta__ = True
 
 
@@ -54,7 +55,7 @@ class GUI(object):
         font.setPointSize(10)
         self.settingsButton.setFont(font)
         self.settingsButton.setObjectName("settingsButton")
-        self.settingsButton.setEnabled(False)
+        self.settingsButton.clicked.connect(self.launchSettings)
 
         self.cdTitle = QtWidgets.QLabel(self.widget)
         self.cdTitle.setGeometry(QtCore.QRect(10, 120, 111, 21))
@@ -223,6 +224,8 @@ class GUI(object):
         self.dir, self.fileCount, self.dirSize, self.estimatedTime, \
             self.filesCompleted, self.timeTaken, self.timeRemaining = "---", "---", "---", "---", "---", "---", "---"
         self.updateStatus = ""
+        self.settingsMenu = None
+
         self.retranslateUi(self.widget)
         self.checkForUpdate()
         QtCore.QMetaObject.connectSlotsByName(self.widget)
@@ -359,3 +362,11 @@ class GUI(object):
         self.sortProgress.setValue(self.sortProgress.value() + self.progressSegment)
         self.filesCompleted += 1
         self.retranslateUi(self.widget)
+
+    def launchSettings(self):
+        if self.settingsMenu == None:
+            self.settingsMenu = Settings()
+            self.settingsWidget = QtWidgets.QWidget()
+        self.settingsMenu.setupUi(self.settingsWidget)
+        self.settingsWidget.show()
+        self.settingsMenu.populateWidgets()
