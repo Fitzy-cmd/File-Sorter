@@ -25,3 +25,6 @@ This project is protected under the GNU General Public Licence v3.0, which grant
 
 ## Support
 Contact myself at Silveridge#9541 on Discord for help and support
+
+### Total project work time (TPWT)
+8 hours, 27 minutes

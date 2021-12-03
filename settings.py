@@ -77,6 +77,7 @@ class Settings(QObject):
         self.efeButton = QtWidgets.QPushButton(self.widget)
         self.efeButton.setGeometry(QtCore.QRect(10, 190, 141, 21))
         self.efeButton.setObjectName("efeButton")
+        self.efeButton.clicked.connect(self.editFileExtension)
 
         self.eafButton = QtWidgets.QPushButton(self.widget)
         self.eafButton.setGeometry(QtCore.QRect(170, 190, 161, 21))
@@ -141,10 +142,9 @@ class Settings(QObject):
                     found = True
             if not found:
                 self.fileExtSelect.addItem(fileExt)
-        
 
-        currentVal = self.fileExtSelect.currentText()
-        self.loadAssociatedFile(currentVal)
+        self.currentFolderText = self.extensionFolder[self.fileExtSelect.currentText()]
+        self.retranslateUi(self.widget)
         
         self.fileExtSelect.currentTextChanged.connect(self.loadAssociatedFile)
     
@@ -160,33 +160,63 @@ class Settings(QObject):
         msgBox.setWindowTitle(title)
         msgBox.exec_()
 
-    def loadAssociatedFile(self, value):
-        self.currentFolderText = self.extensionFolder[value]
+    def loadAssociatedFile(self):
+        self.currentFolderText = self.extensionFolder[self.fileExtSelect.currentText()]
         self.retranslateUi(self.widget)
+    
+    def clearComboBox(self):
+        self.fileExtSelect.clear()
 
     def getUserInput(self, title, text, type):
-        self.extValue, submitted = QInputDialog.getText(None, title, text)
-        if submitted and self.extValue != '':
-            if list(self.extValue)[0] == ".":
-                if type == "addNewItem":
-                    items = []
-                    for ext in self.extensionFolder:
-                        if self.extensionFolder[ext] not in items:
-                            items.append(self.extensionFolder[ext])
-                    self.folderValue, submitted = QInputDialog.getItem(None, title, text, items, 0, False)
-                    if submitted and self.folderValue != '':
-                        found = False # Check to make sure file ext. doesn't already exist
+        if type == "addNewItem":
+            self.extValue, submitted = QInputDialog.getText(None, title, text)
+            if submitted and self.extValue != '':
+                if list(self.extValue)[0] == ".":
+                        items = []
                         for ext in self.extensionFolder:
-                            if ext == self.folderValue:
+                            if self.extensionFolder[ext] not in items:
+                                items.append(self.extensionFolder[ext])
+                        self.folderValue, submitted = QInputDialog.getItem(None, title, text, items, 0, False)
+                        if submitted and self.folderValue != '':
+                            found = False # Check to make sure file ext. doesn't already exist
+                            for ext in self.extensionFolder:
+                                if ext == self.folderValue:
+                                    found = True
+                            if not found: # If file is unique
+                                with open("fileFilters.txt","a") as file:
+                                    file.write(f"\n{self.extValue}|{self.folderValue}")
+                                self.populateWidgets()
+                            else:
+                                self.showPopup("info","File Extension Already Exists", "That file extension already exists!")
+        elif type == "editFileExt":
+            items = []
+            for ext in self.extensionFolder:
+                if self.extensionFolder[ext] not in items:
+                    items.append(ext)
+            self.selectedFileExtForEditing, submitted = QInputDialog.getItem(None, title, text, items, 0, False)
+            if submitted:
+                self.editedValue, submitted = QInputDialog.getText(None, "Edit File Extension", "Enter the file's edits", QLineEdit.Normal, self.selectedFileExtForEditing)
+                if submitted:
+                    self.extensionFolder[self.selectedFileExtForEditing] = self.editedValue
+                    with open("fileFilters.txt","r") as file:
+                        lines = file.readlines()
+                        found = False
+                        for line in lines:
+                            if self.selectedFileExtForEditing in line and found == False:
+                                idx = lines.index(line)
+                                line = line.split("|")
+                                line[0] = self.editedValue
+                                newString = f"{line[0]}|{line[1]}"
+                                lines[idx] = newString
                                 found = True
-                        if not found: # If file is unique
-                            with open("fileFilters.txt","a") as file:
-                                file.write(f"\n{self.extValue}|{self.folderValue}")
-                            self.populateWidgets()
-                        else:
-                            self.showPopup("info","File Extension Already Exists", "That file extension already exists!")
-            else:
-                self.showPopup("info","Incorrect File Input", "File Extension must start with '.'")
-        else:
-            if self.extValue != '':
-                return self.extValue
+                        file.close()
+                    with open("fileFilters.txt", "w") as file:
+                        for line in lines:
+                            file.write(line)
+                        file.close()
+                    self.clearComboBox()
+                    self.populateWidgets()
+
+    
+    def editFileExtension(self):
+        self.getUserInput("Select file extension", "Select a file extension to edit","editFileExt")
